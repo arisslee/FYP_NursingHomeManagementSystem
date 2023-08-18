@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "141994525513",
+    "project_id": "fir-auth-567fc",
+    "storage_bucket": "fir-auth-567fc.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:141994525513:android:d41f312b177d0b1369d098",
+        "android_client_info": {
+          "package_name": "com.example.LifeSpring"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "141994525513-igdmvd4f4n7r90p5ck49nnbb1h8n88fd.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB04jfzbnA2oAJ7uDOT2j3BOAMnMBW6kl4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "141994525513-igdmvd4f4n7r90p5ck49nnbb1h8n88fd.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
