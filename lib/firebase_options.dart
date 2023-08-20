@@ -47,29 +47,29 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyBBG0CqxyLyJq88bVbCxRik7R8cOuc8tdM',
-    appId: '1:930209986753:web:1a9c1905a038af78567c40',
-    messagingSenderId: '930209986753',
-    projectId: 'flutter-chat-app-2c330',
-    authDomain: 'flutter-chat-app-2c330.firebaseapp.com',
-    storageBucket: 'flutter-chat-app-2c330.appspot.com',
+    apiKey: 'AIzaSyDdg3mUI0Mj84KoFVFyJTeLsBJQ3nWM0qE',
+    appId: '1:141994525513:web:2792cd43958c2a7469d098',
+    messagingSenderId: '141994525513',
+    projectId: 'fir-auth-567fc',
+    authDomain: 'fir-auth-567fc.firebaseapp.com',
+    storageBucket: 'fir-auth-567fc.appspot.com',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyArXDkayuMYXJVnnkaH_d8LeQ6GqRMm3FE',
-    appId: '1:930209986753:android:6af0cad949cd0960567c40',
-    messagingSenderId: '930209986753',
-    projectId: 'flutter-chat-app-2c330',
-    storageBucket: 'flutter-chat-app-2c330.appspot.com',
+    apiKey: 'AIzaSyB04jfzbnA2oAJ7uDOT2j3BOAMnMBW6kl4',
+    appId: '1:141994525513:android:d41f312b177d0b1369d098',
+    messagingSenderId: '141994525513',
+    projectId: 'fir-auth-567fc',
+    storageBucket: 'fir-auth-567fc.appspot.com',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyAUuDFAB9_aDj-o_AaBBOuVUFqGGm0MA6s',
-    appId: '1:930209986753:ios:773eee6f3faae632567c40',
-    messagingSenderId: '930209986753',
-    projectId: 'flutter-chat-app-2c330',
-    storageBucket: 'flutter-chat-app-2c330.appspot.com',
-    iosClientId: '930209986753-e2bpbq27perbrufv6gpqmsc0enfdkibg.apps.googleusercontent.com',
+    apiKey: 'AIzaSyDWZgANbSDLK5g27BmyRnvt1ohGszJgJVU',
+    appId: '1:141994525513:ios:3bb41d820b6f715969d098',
+    messagingSenderId: '141994525513',
+    projectId: 'fir-auth-567fc',
+    storageBucket: 'fir-auth-567fc.appspot.com',
+    iosClientId: '141994525513-eh1s04l7dhadnpak48f3b7tdbnp31rvl.apps.googleusercontent.com',
     iosBundleId: 'com.example.flutterDemo',
   );
 }

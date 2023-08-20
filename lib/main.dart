@@ -1,6 +1,6 @@
-//import 'package:firebase_core/firebase_core.dart';
-//import 'package:firebase_auth/firebase_auth.dart';
-//import 'firebase_options.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'firebase_options.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'home.dart';
@@ -8,11 +8,43 @@ import 'intro_page.dart';
 import 'visiting_appointment.dart';
 
 void main() async {
-  // WidgetsFlutterBinding.ensureInitialized();
-  // await Firebase.initializeApp(
-  //   options: DefaultFirebaseOptions.currentPlatform,
-  // );
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
   runApp(MyApp());
+}
+
+class Auth {
+  final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
+
+  User? get currentUser => _firebaseAuth.currentUser;
+
+  Stream<User?> get authStateChanges => _firebaseAuth.authStateChanges();
+
+  Future<void> signInWithEmailAndPassword({
+    required String email,
+    required String password,
+  }) async {
+    await _firebaseAuth.signInWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+  }
+
+  Future<void> createUserWithEmailAndPassword({
+    required String email,
+    required String password,
+  }) async {
+    await _firebaseAuth.createUserWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+  }
+  // Future<void> signOut({
+  // }) async {
+  //   await _firebaseAuth.signOut(
+  //   );
+  // }
 }
 
 class MyApp extends StatelessWidget {
@@ -25,9 +57,42 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class LoginPage extends StatelessWidget {
+class LoginPage extends StatefulWidget {
+  @override
+  _LoginPageState createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  String? errorMessage = '';
+  bool isLogin = true;
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+
+  Future<void> signInWithEmailAndPassword() async {
+    try {
+      await Auth().signInWithEmailAndPassword(
+        email: emailController.text,
+        password: passwordController.text,
+      );
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        errorMessage = e.message;
+      });
+    }
+  }
+
+  Future<void> createUserWithEmailAndPassword() async {
+    try {
+      await Auth().createUserWithEmailAndPassword(
+        email: emailController.text,
+        password: passwordController.text,
+      );
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        errorMessage = e.message;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -182,17 +247,45 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
+  String? email;
+  String? password;
+  String? errorMessage;
   TextEditingController fullNameController = TextEditingController();
   TextEditingController emailController = TextEditingController();
   TextEditingController phoneNumberController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
 
-  void _register() {
-    // Add your registration logic here
-    // For demonstration purposes, let's assume the registration is successful
+  final _auth = FirebaseAuth.instance;
 
-    // Navigate back to the LoginPage
-    Navigator.pop(context);
+  void _register() async {
+    try {
+      // Get email and password from controllers
+      email = emailController.text;
+      password = passwordController.text;
+
+      // Check if email and password are not null and not empty
+      if (email != null &&
+          password != null &&
+          email!.isNotEmpty &&
+          password!.isNotEmpty) {
+        var userCredential = await _auth.createUserWithEmailAndPassword(
+          email: email!,
+          password: password!,
+        );
+
+        if (userCredential.user != null) {
+          // Registration successful, navigate back to the LoginPage
+          Navigator.pop(context);
+        }
+      } else {
+        // Handle invalid input
+        print("Invalid email or password");
+      }
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        errorMessage = e.message;
+      });
+    }
   }
 
   @override
@@ -225,7 +318,7 @@ class _RegisterPageState extends State<RegisterPage> {
               _buildTextField('Password', passwordController, isPassword: true),
               SizedBox(height: 20),
               ElevatedButton(
-                onPressed: _register, // Call the registration function
+                onPressed: _register,
                 style: ElevatedButton.styleFrom(
                   primary: Colors.blue,
                   elevation: 5,
