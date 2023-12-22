@@ -1,17 +1,35 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'firebase_options.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'home.dart';
+import 'staff_home.dart';
+import 'doctor_home.dart';
 import 'intro_page.dart';
 import 'visiting_appointment.dart';
+import 'register.dart';
+
+// Define dbRef here as a global variable
+final dbRef = FirebaseDatabase.instance.reference().child("users");
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   runApp(MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: LoginPage(),
+    );
+  }
 }
 
 class Auth {
@@ -40,21 +58,6 @@ class Auth {
       password: password,
     );
   }
-  // Future<void> signOut({
-  // }) async {
-  //   await _firebaseAuth.signOut(
-  //   );
-  // }
-}
-
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: LoginPage(),
-    );
-  }
 }
 
 class LoginPage extends StatefulWidget {
@@ -63,34 +66,123 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+  String? email;
+  String? password;
   String? errorMessage = '';
-  bool isLogin = true;
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
-  Future<void> signInWithEmailAndPassword() async {
-    try {
-      await Auth().signInWithEmailAndPassword(
-        email: emailController.text,
-        password: passwordController.text,
-      );
-    } on FirebaseAuthException catch (e) {
+  final _auth = FirebaseAuth.instance;
+
+  void _login() async {
+    email = emailController.text;
+    password = passwordController.text;
+
+    if (email != null && password != null) {
+      if (email!.isEmpty && password!.isEmpty) {
+        setState(() {
+          errorMessage = 'Please enter your email and password';
+        });
+      } else if (email!.isEmpty) {
+        setState(() {
+          errorMessage = 'Please enter your email';
+        });
+      } else if (password!.isEmpty) {
+        setState(() {
+          errorMessage = 'Please enter your password';
+        });
+      } else {
+        if (!email!.contains('@')) {
+          setState(() {
+            errorMessage = 'Invalid email format';
+          });
+        } else {
+          // Check for the specific email and password for Doctor
+          if (email == 'doctor@lifespring.com' && password == 'doctor') {
+            // Navigate to DoctorHomePage
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => DoctorHomePage(),
+              ),
+            );
+          }
+          // Check for the specific email and password for Staff
+          else if (email == 'staff@lifespring.com' && password == 'staff') {
+            // Navigate to StaffHomePage
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => StaffHomePage(),
+              ),
+            );
+          }
+          // For other cases, follow your existing logic
+          else {
+            try {
+              var userCredential = await _auth.signInWithEmailAndPassword(
+                email: email!,
+                password: password!,
+              );
+
+              if (userCredential.user != null) {
+                final User? user = await _auth.currentUser;
+                final userID = user?.uid;
+
+                try {
+                  // Corrected curly brace location
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => IntroPage(),
+                    ),
+                  );
+                } catch (e) {
+                  // Handle any errors that occurred during Firestore fetch.
+                  print("Error fetching data: $e");
+                }
+              } else {
+                setState(() {
+                  errorMessage = 'Invalid email or password';
+                });
+              }
+            } on FirebaseAuthException catch (e) {
+              print("FirebaseAuthException: ${e.code}");
+              if (e.code == 'user-not-found' || e.code == 'wrong-password') {
+                setState(() {
+                  errorMessage = 'Invalid email or password';
+                });
+              } else {
+                setState(() {
+                  errorMessage = 'Login failed';
+                });
+              }
+            }
+          }
+        }
+      }
+    } else {
       setState(() {
-        errorMessage = e.message;
+        errorMessage = 'Please enter your email and password';
       });
     }
   }
 
-  Future<void> createUserWithEmailAndPassword() async {
-    try {
-      await Auth().createUserWithEmailAndPassword(
-        email: emailController.text,
-        password: passwordController.text,
+  Widget _buildErrorMessage() {
+    print("errorMessage: $errorMessage");
+    if (errorMessage == null || errorMessage!.isEmpty) {
+      return SizedBox.shrink();
+    } else {
+      return Center(
+        // Wrap the error message with Center
+        child: Container(
+          padding: EdgeInsets.symmetric(vertical: 10),
+          child: Text(
+            errorMessage!,
+            style: TextStyle(color: Colors.red),
+          ),
+        ),
       );
-    } on FirebaseAuthException catch (e) {
-      setState(() {
-        errorMessage = e.message;
-      });
     }
   }
 
@@ -129,9 +221,10 @@ class _LoginPageState extends State<LoginPage> {
                   const Text(
                     '❤️ LifeSpring ❤️',
                     style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: "MarckScript"),
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: "MarckScript",
+                    ),
                   ),
                   SizedBox(height: 20),
                   _buildTextField('Email', emailController,
@@ -140,16 +233,8 @@ class _LoginPageState extends State<LoginPage> {
                   _buildTextField('Password', passwordController,
                       isPassword: true, iconData: Icons.lock),
                   SizedBox(height: 20),
-                  _buildButton(context, 'Login', () {
-                    // Replace this with your login logic
-                    // For demonstration purposes, let's assume the login is successful and we navigate to the IntroPage:
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) =>
-                              IntroPage()), // Navigate to IntroPage
-                    );
-                  }),
+                  _buildButton(
+                      context, 'Login', _login), // Use the _login method
                   SizedBox(height: 10),
                   RichText(
                     text: TextSpan(
@@ -214,193 +299,37 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Widget _buildButton(
-      BuildContext context, String label, VoidCallback onPressed) {
-    return ElevatedButton(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        primary: Colors.blue,
-        elevation: 5,
-        padding: EdgeInsets.symmetric(vertical: 15),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-      ),
-      child: Container(
-        width: double.infinity,
-        alignment: Alignment.center,
-        child: Text(
-          label,
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+    BuildContext context,
+    String label,
+    VoidCallback onPressed,
+  ) {
+    return Column(
+      children: [
+        ElevatedButton(
+          onPressed: onPressed,
+          style: ElevatedButton.styleFrom(
+            primary: Colors.blue,
+            elevation: 5,
+            padding: EdgeInsets.symmetric(vertical: 15),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class RegisterPage extends StatefulWidget {
-  @override
-  _RegisterPageState createState() => _RegisterPageState();
-}
-
-class _RegisterPageState extends State<RegisterPage> {
-  String? email;
-  String? password;
-  String? errorMessage;
-  TextEditingController fullNameController = TextEditingController();
-  TextEditingController emailController = TextEditingController();
-  TextEditingController phoneNumberController = TextEditingController();
-  TextEditingController passwordController = TextEditingController();
-
-  final _auth = FirebaseAuth.instance;
-
-  void _register() async {
-    try {
-      // Get email and password from controllers
-      email = emailController.text;
-      password = passwordController.text;
-
-      // Check if email and password are not null and not empty
-      if (email != null &&
-          password != null &&
-          email!.isNotEmpty &&
-          password!.isNotEmpty) {
-        var userCredential = await _auth.createUserWithEmailAndPassword(
-          email: email!,
-          password: password!,
-        );
-
-        if (userCredential.user != null) {
-          // Registration successful, navigate back to the LoginPage
-          Navigator.pop(context);
-        }
-      } else {
-        // Handle invalid input
-        print("Invalid email or password");
-      }
-    } on FirebaseAuthException catch (e) {
-      setState(() {
-        errorMessage = e.message;
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    fullNameController.dispose();
-    emailController.dispose();
-    phoneNumberController.dispose();
-    passwordController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Register'),
-      ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildTextField('Full Name', fullNameController),
-              SizedBox(height: 10),
-              _buildTextField('Email', emailController),
-              SizedBox(height: 10),
-              _buildTextField('Phone Number', phoneNumberController),
-              SizedBox(height: 10),
-              _buildTextField('Password', passwordController, isPassword: true),
-              SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _register,
-                style: ElevatedButton.styleFrom(
-                  primary: Colors.blue,
-                  elevation: 5,
-                  padding: EdgeInsets.symmetric(vertical: 15),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                ),
-                child: Container(
-                  width: double.infinity,
-                  alignment: Alignment.center,
-                  child: Text(
-                    'Register',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
+          child: Container(
+            width: double.infinity,
+            alignment: Alignment.center,
+            child: Text(
+              label,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
               ),
-            ],
+            ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildTextField(String label, TextEditingController controller,
-      {bool isPassword = false}) {
-    // Define the icon data
-    IconData? iconData;
-    if (label == 'Full Name') {
-      iconData = Icons.person;
-    } else if (label == 'Email') {
-      iconData = Icons.email;
-    } else if (label == 'Phone Number') {
-      iconData = Icons.phone;
-    } else if (label == 'Password' && isPassword) {
-      iconData = Icons.lock;
-    }
-
-    return TextField(
-      controller: controller,
-      obscureText: isPassword,
-      style: TextStyle(fontSize: 16),
-      decoration: InputDecoration(
-        labelText: label,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.blue),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        contentPadding: EdgeInsets.all(15),
-        prefixIcon: iconData != null
-            ? Icon(
-                iconData,
-                color: Colors.blue, // Set the color of the icon
-              )
-            : null,
-      ),
-    );
-  }
-
-  Widget _buildPasswordField(String label, TextEditingController controller) {
-    return TextField(
-      controller: controller,
-      obscureText: true,
-      style: TextStyle(fontSize: 16),
-      decoration: InputDecoration(
-        labelText: label,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.blue),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        contentPadding: EdgeInsets.all(15),
-      ),
+        _buildErrorMessage(), // Add this widget to display the error message
+      ],
     );
   }
 }

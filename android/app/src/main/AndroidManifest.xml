@@ -1,5 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+<uses-permission android:name="android.permission.USE_BIOMETRIC"/>
+
+<!-- <uses-permission android:name="android.permission.INTERNET" /> -->
+
     <application
         android:label="LifeSpring"
         android:name="${applicationName}"
@@ -18,8 +22,11 @@
                  to determine the Window background behind the Flutter UI. -->
             <meta-data
               android:name="io.flutter.embedding.android.NormalTheme"
-              android:resource="@style/NormalTheme"
-              />
+              android:resource="@style/NormalTheme"/>
+            <!-- <meta-data
+                android:name="com.google.android.geo.API_KEY"
+                android:value="AIzaSyCRU3SIXiJVVfCebJ7ijrih3MYQ2lCcfYw"
+            /> -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>

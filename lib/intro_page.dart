@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'home.dart'; // Import the HomePage
+import 'package:carousel_slider/carousel_slider.dart'; // Import the carousel_slider package
 
 class IntroPage extends StatefulWidget {
   @override
@@ -8,6 +9,7 @@ class IntroPage extends StatefulWidget {
 
 class _IntroPageState extends State<IntroPage> {
   double opacity = 0.0; // Initial opacity
+  int _currentPage = 0;
 
   @override
   void initState() {
@@ -20,13 +22,41 @@ class _IntroPageState extends State<IntroPage> {
     });
   }
 
+  Widget _buildPage(String imagePath) {
+    return Container(
+      child: Transform.scale(
+        scale: 1.0,
+        child: Container(
+          decoration: BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage(imagePath),
+              fit: BoxFit.cover,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Welcome Page'),
+        title: Text('Welcome to LifeSpring'),
+        backgroundColor: Colors.blue,
       ),
-      body: _buildIntroPageContent(context), // Pass the context to the method
+      body: Container(
+        decoration: BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/background.png'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: Container(
+          height: MediaQuery.of(context).size.height,
+          child: _buildIntroPageContent(context),
+        ),
+      ),
     );
   }
 
@@ -42,8 +72,8 @@ class _IntroPageState extends State<IntroPage> {
               opacity: opacity,
               child: Image.asset(
                 'assets/logo.png', // Replace with your image asset
-                width: 320,
-                height: 320,
+                width: 250,
+                height: 250,
               ),
             ),
             // Fade-in animation for the text
@@ -51,54 +81,40 @@ class _IntroPageState extends State<IntroPage> {
               duration: Duration(seconds: 1),
               opacity: opacity,
               child: Text(
-                'Your Trusted Old Folks Home Management System',
+                'Your Trusted Nursing Home Management System',
                 style: TextStyle(fontSize: 18, color: Colors.grey),
                 textAlign: TextAlign.center,
               ),
             ),
-            SizedBox(height: 30),
-            // Fade-in animation for the container
+
+            // Fade-in animation for the CarouselSlider
             AnimatedOpacity(
               duration: Duration(seconds: 1),
               opacity: opacity,
-              child: Container(
-                width: MediaQuery.of(context).size.width * 0.8,
-                padding: EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color.fromARGB(255, 135, 134, 134)
-                          .withOpacity(0.5),
-                      spreadRadius: 2,
-                      blurRadius: 5,
-                      offset: Offset(0, 3),
-                    ),
-                  ],
-                  border: Border.all(
-                    color: Colors.grey[500]!,
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      'LifeSpring is designed to provide comprehensive and efficient management for old folks homes.',
-                      style: TextStyle(fontSize: 16),
-                      textAlign: TextAlign.justify,
-                    ),
-                    SizedBox(height: 20),
-                    Text(
-                      'We always ensure seniors comfort and streamlining operations for enhanced care.',
-                      style: TextStyle(fontSize: 16),
-                      textAlign: TextAlign.justify,
-                    ),
-                  ],
+              child: CarouselSlider(
+                items: [
+                  _buildPage('assets/welcome_surrounding.png'),
+                  _buildPage('assets/welcome_staff.png'),
+                  _buildPage('assets/welcome_activities.png'),
+                  _buildPage('assets/welcome_medical.png'),
+                ],
+                options: CarouselOptions(
+                  height: 330,
+                  initialPage: 0,
+                  enableInfiniteScroll: true,
+                  autoPlay: true,
+                  autoPlayInterval: Duration(seconds: 3),
+                  enlargeCenterPage: true,
+                  onPageChanged: (index, reason) {
+                    setState(() {
+                      _currentPage = index;
+                    });
+                  },
                 ),
               ),
             ),
-            SizedBox(height: 30),
-            // Add animation and transition
+
+            // Add animation and transition for the "Get Started" button
             AnimatedOpacity(
               duration: Duration(seconds: 1),
               opacity: opacity,
