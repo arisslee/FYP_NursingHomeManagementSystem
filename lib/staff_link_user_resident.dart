@@ -6,7 +6,7 @@ import 'staff_show_link_book.dart';
 
 class StaffLinkUserResident extends StatefulWidget {
   final List<Resident> selectedResidents;
-  final String residentId; // Add residentId
+  final String residentId;
   final void Function(List<Resident>, List<User>) onResidentsAndUsersUpdated;
 
   StaffLinkUserResident({
@@ -22,13 +22,13 @@ class StaffLinkUserResident extends StatefulWidget {
 class _StaffLinkUserResidentState extends State<StaffLinkUserResident> {
   late Future<List<User>> users;
   List<User> selectedUsers = [];
-  String residentName = ""; // Add residentName
+  String residentName = "";
 
   @override
   void initState() {
     super.initState();
     users = fetchUsers();
-    fetchResidentName(); // Fetch the resident name when the widget is initialized
+    fetchResidentName();
   }
 
   String getResidentId(String residentName) {
@@ -38,7 +38,7 @@ class _StaffLinkUserResidentState extends State<StaffLinkUserResident> {
         return resident.id;
       }
     }
-    return ''; // Return an empty string if not found (you can handle this case differently)
+    return '';
   }
 
   Future<void> fetchResidentName() async {
@@ -73,8 +73,8 @@ class _StaffLinkUserResidentState extends State<StaffLinkUserResident> {
         name: userData['name'],
         gender: userData['gender'],
         contactNumber: userData['contactNumber'],
-        userId: userDoc.id, // Set the userID as the document ID
-        isSelected: false, // Set the default value for isChecked
+        userId: userDoc.id,
+        isSelected: false,
       );
 
       userList.add(user);
