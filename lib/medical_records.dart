@@ -116,6 +116,16 @@ class _MedicalRecordsPageState extends State<MedicalRecordsPage> {
                   .compareTo(DateTime.parse(b['uploadDate'])),
             );
           });
+
+          if (medicalRecordsData.isEmpty) {
+            // Show a Snackbar when no medical records are found
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('No medical records found for the selected date'),
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
         }
       }
     } catch (e) {

@@ -74,7 +74,7 @@ class _StaffLinkUserResidentState extends State<StaffLinkUserResident> {
         gender: userData['gender'],
         contactNumber: userData['contactNumber'],
         userId: userDoc.id, // Set the userID as the document ID
-        isChecked: false, // Set the default value for isChecked
+        isSelected: false, // Set the default value for isChecked
       );
 
       userList.add(user);
@@ -190,7 +190,7 @@ class UserList extends StatefulWidget {
 
 class _UserListState extends State<UserList> {
   late Future<List<User>> users;
-  List<User> selectedUsers = [];
+  User? selectedUser;
 
   @override
   void initState() {
@@ -214,7 +214,7 @@ class _UserListState extends State<UserList> {
           gender: userData['gender'],
           contactNumber: userData['contactNumber'],
           userId: userDoc.id, // Set the userID as the document ID
-          isChecked: false, // Set the default value for isChecked
+          isSelected: false, // Set the default value for isChecked
         );
 
         userList.add(user);
@@ -230,67 +230,73 @@ class _UserListState extends State<UserList> {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<User>>(
-      future: users,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return CircularProgressIndicator();
-        } else if (snapshot.hasError) {
-          return Text('Error: ${snapshot.error}');
-        } else {
-          List<User> userList = snapshot.data!;
+        future: users,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return CircularProgressIndicator();
+          } else if (snapshot.hasError) {
+            return Text('Error: ${snapshot.error}');
+          } else {
+            List<User> userList = snapshot.data!;
 
-          return ListView.builder(
-            shrinkWrap: true,
-            physics: NeverScrollableScrollPhysics(),
-            itemCount: userList.length,
-            itemBuilder: (context, index) {
-              User user = userList[index];
+            return ListView.builder(
+              shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(),
+              itemCount: userList.length,
+              itemBuilder: (context, index) {
+                User user = userList[index];
 
-              return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    // Toggle the isChecked property
-                    user.isChecked = !user.isChecked;
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      // Unselect the previously selected user
+                      if (selectedUser != null) {
+                        selectedUser!.isSelected = false;
+                      }
 
-                    if (user.isChecked) {
-                      // Add the selected user
-                      selectedUsers.add(user);
-                    } else {
-                      // Remove the unselected user
-                      selectedUsers.remove(user);
-                    }
+                      // Toggle the isSelected property
+                      user.isSelected = !user.isSelected;
 
-                    widget.onSelectedUsersChanged(selectedUsers);
-                  });
-                },
-                child: Card(
-                  elevation: 4,
-                  margin: EdgeInsets.all(8),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  color: user.isChecked
-                      ? Color.fromARGB(255, 171, 233, 173)
-                      : null,
-                  child: ListTile(
-                    title: Text(user.name),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Gender: ${user.gender}'),
-                        Text('Contact Number: ${user.contactNumber}'),
-                        SizedBox(height: 16.0),
-                        Text('User ID: ${user.userId}'), // Add this line
-                      ],
+                      if (user.isSelected) {
+                        // Set the selected user
+                        selectedUser = user;
+                      } else {
+                        // Clear the selected user
+                        selectedUser = null;
+                      }
+
+                      widget.onSelectedUsersChanged(selectedUser != null
+                          ? [selectedUser!]
+                          : []); // Pass the selected user list
+                    });
+                  },
+                  child: Card(
+                    elevation: 4,
+                    margin: EdgeInsets.all(8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    color: user.isSelected
+                        ? Color.fromARGB(255, 171, 233, 173)
+                        : null,
+                    child: ListTile(
+                      title: Text(user.name),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Gender: ${user.gender}'),
+                          Text('Contact Number: ${user.contactNumber}'),
+                          SizedBox(height: 16.0),
+                          Text('User ID: ${user.userId}'),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              );
-            },
-          );
-        }
-      },
-    );
+                );
+              },
+            );
+          }
+        });
   }
 }
 
@@ -298,15 +304,15 @@ class User {
   final String name;
   final String gender;
   final String contactNumber;
-  final String userId; // Add this line
-  bool isChecked; // Add this line
+  final String userId;
+  bool isSelected;
 
   User({
     required this.name,
     required this.gender,
     required this.contactNumber,
-    required this.userId, // Add this line
-    this.isChecked = false, // Add this line with a default value
+    required this.userId,
+    this.isSelected = false,
   });
 }
 

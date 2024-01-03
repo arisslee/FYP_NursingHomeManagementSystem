@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pdf/pdf.dart';
@@ -18,9 +19,12 @@ class ViewMedicalRecord extends StatefulWidget {
 
 class _ViewMedicalRecordState extends State<ViewMedicalRecord> {
   late Future<void> medicalRecordData;
+  String? formattedEditTime;
 
   String? residentName;
   DateTime? recordDate;
+  DateTime? editTime;
+
   final TextEditingController temperatureController = TextEditingController();
   final TextEditingController bloodPressureController = TextEditingController();
   final TextEditingController heartRateController = TextEditingController();
@@ -28,6 +32,8 @@ class _ViewMedicalRecordState extends State<ViewMedicalRecord> {
   final TextEditingController diagnosisController = TextEditingController();
   final TextEditingController prescriptionsController = TextEditingController();
   final TextEditingController notesController = TextEditingController();
+
+  final DateFormat dateFormat = DateFormat('yyyy-MM-dd HH:mm:ss');
 
   @override
   void initState() {
@@ -54,6 +60,9 @@ class _ViewMedicalRecordState extends State<ViewMedicalRecord> {
         // Update residentName and text controllers with fetched data
         residentName = data?['residentName']?.toString() ?? '';
         recordDate = (data?['uploadDate'] as Timestamp?)?.toDate();
+        editTime =
+            (data?['editTime'] as Timestamp?)?.toDate(); // Update this line
+
         temperatureController.text = data?['temperature']?.toString() ?? '';
         bloodPressureController.text = data?['bloodPressure']?.toString() ?? '';
         heartRateController.text = data?['heartRate']?.toString() ?? '';
@@ -75,10 +84,17 @@ class _ViewMedicalRecordState extends State<ViewMedicalRecord> {
     // Create a PDF document
     final pdf = pw.Document();
 
-    // Add content to the PDF document
+    // Add the first page content
     pdf.addPage(
       pw.Page(
-        build: (pw.Context context) => _buildPdfContent(context),
+        build: (pw.Context context) => _buildFirstPage(context),
+      ),
+    );
+
+    // Add the second page content
+    pdf.addPage(
+      pw.Page(
+        build: (pw.Context context) => _buildSecondPage(context),
       ),
     );
 
@@ -91,8 +107,8 @@ class _ViewMedicalRecordState extends State<ViewMedicalRecord> {
     );
   }
 
-  pw.Widget _buildPdfContent(pw.Context context) {
-    // Build the content of the PDF here
+  pw.Widget _buildFirstPage(pw.Context context) {
+    // Build the content of the first page here
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
@@ -126,7 +142,16 @@ class _ViewMedicalRecordState extends State<ViewMedicalRecord> {
               ),
               pw.SizedBox(height: 18.0),
               pw.Text(
-                'Upload Date: ${recordDate?.toLocal().toString().split(' ')[0] ?? "N/A"}',
+                'Upload Date: ${recordDate != null ? dateFormat.format(recordDate!) : "N/A"}',
+                style: pw.TextStyle(
+                  fontSize: 16,
+                  fontWeight: pw.FontWeight.bold,
+                  color: PdfColors.black,
+                ),
+              ),
+              pw.SizedBox(height: 18.0),
+              pw.Text(
+                'Edit Time: ${editTime != null ? dateFormat.format(editTime!) : "N/A"}',
                 style: pw.TextStyle(
                   fontSize: 16,
                   fontWeight: pw.FontWeight.bold,
@@ -159,6 +184,16 @@ class _ViewMedicalRecordState extends State<ViewMedicalRecord> {
           ],
         ),
         _buildDivider(),
+      ],
+    );
+  }
+
+  pw.Widget _buildSecondPage(pw.Context context) {
+    // Build the content of the second page here
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        // Display other medical record details based on your data structure
         _buildSection(
           'Patient Information',
           [
@@ -332,7 +367,23 @@ class _ViewMedicalRecordState extends State<ViewMedicalRecord> {
                             ),
                           ),
                           Text(
-                            '${recordDate?.toLocal().toString().split(' ')[0] ?? "N/A"}',
+                            '${recordDate != null ? dateFormat.format(recordDate!) : "N/A"}',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.black,
+                            ),
+                          ),
+                          SizedBox(height: 18.0),
+                          Text(
+                            'Edit Time:',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                          ),
+                          Text(
+                            '${editTime != null ? dateFormat.format(editTime!) : "N/A"}',
                             style: TextStyle(
                               fontSize: 16,
                               color: Colors.black,

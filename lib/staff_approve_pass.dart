@@ -122,25 +122,34 @@ class _StaffApprovePassPageState extends State<StaffApprovePassPage> {
               final endTime = appointment['endTime'] as String;
 
               return GestureDetector(
-                onTap: status == 'approve'
-                    ? () {
-                        // Handle 'approve' tab item click
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => StaffGeneratePassPage(
-                              context: context,
-                              date: date.toDate(),
-                              startTime: startTime,
-                              endTime: endTime,
-                              userName: appointment['userName'],
-                              userPhone: appointment['userPhone'],
-                              userUID: appointment['userUID'],
-                            ),
-                          ),
-                        );
-                      }
-                    : null, // Disable onTap for 'disapprove' tab
+                onTap: () {
+                  if (status == 'approve') {
+                    // Handle 'approve' tab item click
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => StaffGeneratePassPage(
+                          context: context,
+                          date: date.toDate(),
+                          startTime: startTime,
+                          endTime: endTime,
+                          userName: appointment['userName'],
+                          userPhone: appointment['userPhone'],
+                          userUID: appointment['userUID'],
+                        ),
+                      ),
+                    );
+                  } else if (status == 'disapprove') {
+                    // Handle 'disapprove' tab item click
+                    _showDisapprovalReasonDialog(
+                      context,
+                      date.toDate(),
+                      startTime,
+                      endTime,
+                      appointment['reason'],
+                    );
+                  }
+                },
                 child: Container(
                   margin: EdgeInsets.all(8.0),
                   padding: EdgeInsets.all(8.0),
@@ -162,6 +171,9 @@ class _StaffApprovePassPageState extends State<StaffApprovePassPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text('Time: $startTime - $endTime'),
+                        // if (status == 'disapprove' &&
+                        //     appointment['reason'] != null)
+                        //   Text('Reason: ${appointment['reason']}'),
                       ],
                     ),
                   ),
@@ -169,6 +181,40 @@ class _StaffApprovePassPageState extends State<StaffApprovePassPage> {
               );
             }).toList(),
           ),
+        );
+      },
+    );
+  }
+
+  void _showDisapprovalReasonDialog(
+    BuildContext context,
+    DateTime date,
+    String startTime,
+    String endTime,
+    String reason,
+  ) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Disapproval Reason'),
+          content: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Text('Date: ${_formatDate(date)}'),
+              // Text('Time: $startTime - $endTime'),
+              Text('$reason'),
+            ],
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Close'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
         );
       },
     );

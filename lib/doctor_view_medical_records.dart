@@ -7,6 +7,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart' as pdfPrinting;
 import 'dart:typed_data';
 import 'doctor_view_medical_records.dart';
+import 'doctor_medical_listview.dart';
 
 class DoctorViewMedicalRecords extends StatefulWidget {
   final MedicalRecord medicalRecord;
@@ -35,6 +36,10 @@ class _DoctorViewMedicalRecordsState extends State<DoctorViewMedicalRecords> {
 
   late bool isEditMode;
   String? documentId;
+  DateTime? editedTimestamp;
+  String? recordDateFormatted;
+
+  QuerySnapshot<Map<String, dynamic>>? querySnapshot;
 
   @override
   void initState() {
@@ -63,6 +68,7 @@ class _DoctorViewMedicalRecordsState extends State<DoctorViewMedicalRecords> {
       if (querySnapshot.docs.isNotEmpty) {
         var data = querySnapshot.docs.first.data();
         print('Fetched data: $data');
+
         // Update text controllers with fetched data
         temperatureController.text = data['temperature'].toString();
         bloodPressureController.text = data['bloodPressure'].toString();
@@ -75,7 +81,15 @@ class _DoctorViewMedicalRecordsState extends State<DoctorViewMedicalRecords> {
         // Get the document ID
         documentId = querySnapshot.docs.first.id;
 
-        // Update the UI with the document ID
+        // Update the edited timestamp
+        editedTimestamp = data['editTime'] != null
+            ? (data['editTime'] as Timestamp).toDate()
+            : null;
+
+        // Update record date in the desired format
+        recordDateFormatted = formatTimestamp(widget.selectedDate);
+
+        // Update the UI with the document ID and edited timestamp
         setState(() {});
       } else {
         // Handle the case where no data is found
@@ -85,6 +99,11 @@ class _DoctorViewMedicalRecordsState extends State<DoctorViewMedicalRecords> {
       // Handle errors
       print('Error fetching medical record data: $e\n$stackTrace');
     }
+  }
+
+  // Helper function to format timestamp
+  String formatTimestamp(DateTime timestamp) {
+    return DateFormat('yyyy-MM-dd HH:mm:ss').format(timestamp);
   }
 
   Future<void> _generateAndPreviewPDF() async {
@@ -192,7 +211,26 @@ class _DoctorViewMedicalRecordsState extends State<DoctorViewMedicalRecords> {
                   ),
                   pw.SizedBox(height: 8.0),
                   pw.Text(
-                    '${widget.selectedDate.toLocal().toString().split(' ')[0]}',
+                    '${recordDateFormatted}',
+                    style: pw.TextStyle(
+                      fontSize: 16,
+                      color: PdfColors.black,
+                    ),
+                  ),
+                  pw.SizedBox(height: 18.0),
+                  pw.Text(
+                    'Edited at:',
+                    style: pw.TextStyle(
+                      fontSize: 16,
+                      fontWeight: pw.FontWeight.bold,
+                      color: PdfColors.black,
+                    ),
+                  ),
+                  pw.SizedBox(height: 8.0),
+                  pw.Text(
+                    editedTimestamp != null
+                        ? formatTimestamp(editedTimestamp!)
+                        : 'N/A',
                     style: pw.TextStyle(
                       fontSize: 16,
                       color: PdfColors.black,
@@ -228,7 +266,16 @@ class _DoctorViewMedicalRecordsState extends State<DoctorViewMedicalRecords> {
             ),
           ],
         ),
-        _buildDivider(),
+        pw.SizedBox(height: 20.0),
+      ],
+    );
+  }
+
+  pw.Widget _buildSecondPage(pw.Context context) {
+    // Build content for the second page here
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
         _buildSection(
           'Patient Information',
           [
@@ -255,16 +302,7 @@ class _DoctorViewMedicalRecordsState extends State<DoctorViewMedicalRecords> {
             ),
           ],
         ),
-        pw.SizedBox(height: 20.0),
-      ],
-    );
-  }
-
-  pw.Widget _buildSecondPage(pw.Context context) {
-    // Build content for the second page here
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
+        _buildDivider(),
         _buildSection(
           'Additional Notes',
           [
@@ -341,6 +379,63 @@ class _DoctorViewMedicalRecordsState extends State<DoctorViewMedicalRecords> {
     );
   }
 
+  void saveChanges(BuildContext context) async {
+    try {
+      // Convert selectedDate to a Timestamp
+      Timestamp selectedTimestamp = Timestamp.fromDate(widget.selectedDate);
+
+      // Create a map of updated data
+      Map<String, dynamic> updatedData = {
+        'temperature': temperatureController.text,
+        'bloodPressure': bloodPressureController.text,
+        'heartRate': heartRateController.text,
+        'symptoms': symptomsController.text,
+        'diagnosis': diagnosisController.text,
+        'prescriptions': prescriptionsController.text,
+        'notes': notesController.text,
+        'editTime': FieldValue.serverTimestamp(), // Add this line
+      };
+
+      // Update the medical record data in Firestore
+      await FirebaseFirestore.instance
+          .collection('medical_record')
+          .doc(documentId) // Use the document ID to update the specific record
+          .update(updatedData);
+
+      // Update the edited timestamp
+      editedTimestamp = DateTime.now();
+
+      // Show a success message
+      print('Changes saved successfully');
+
+      // Show a SnackBar with the success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Data updated!'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+
+      // Navigate to MedicalCalendarPage after saving changes
+      Navigator.pop(context);
+    } catch (e, stackTrace) {
+      // Handle errors
+      print('Error saving changes: $e\n$stackTrace');
+      // You might want to show an error message to the user
+    }
+  }
+
+  // Helper function to check if data is different
+  bool _isDataDifferent(
+      Map<String, dynamic> updatedData, Map<String, dynamic> existingData) {
+    for (var key in updatedData.keys) {
+      if (updatedData[key] != existingData[key]) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -352,6 +447,10 @@ class _DoctorViewMedicalRecordsState extends State<DoctorViewMedicalRecords> {
             icon: Icon(isEditMode ? Icons.save : Icons.edit),
             onPressed: () {
               setState(() {
+                if (isEditMode) {
+                  // Save Changes pressed, call the saveChanges method with the context
+                  saveChanges(context);
+                }
                 isEditMode = !isEditMode;
               });
             },
@@ -371,83 +470,107 @@ class _DoctorViewMedicalRecordsState extends State<DoctorViewMedicalRecords> {
               SizedBox(height: 20.0),
               // Display Record Date, Resident Name, and Document ID
               Container(
-                  width: 360.0, // Specify the width as per your requirement
-                  padding: EdgeInsets.all(16.0),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.black),
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                  child: Column(
+                width: 360.0,
+                padding: EdgeInsets.all(16.0),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.black),
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (documentId != null)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Document ID:',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                          ),
+                          SizedBox(height: 8.0),
+                          Text(
+                            '${widget.medicalRecord.documentId ?? documentId}',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.black,
+                            ),
+                          ),
+                        ],
+                      ),
+                    SizedBox(height: 18.0),
+                    if (widget.residentName != null)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Resident Name:',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                          ),
+                          SizedBox(height: 8.0),
+                          Text(
+                            '${widget.residentName}',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.black,
+                            ),
+                          ),
+                        ],
+                      ),
+                    SizedBox(height: 18.0),
+                    Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (documentId != null)
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Document ID:',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black,
-                                ),
-                              ),
-                              SizedBox(height: 8.0),
-                              Text(
-                                '${widget.medicalRecord.documentId ?? documentId}',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.black,
-                                ),
-                              ),
-                            ],
+                        Text(
+                          'Record Date:',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
                           ),
-                        SizedBox(height: 18.0),
-                        if (widget.residentName != null)
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Resident Name:',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black,
-                                ),
-                              ),
-                              SizedBox(height: 8.0),
-                              Text(
-                                '${widget.residentName}',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.black,
-                                ),
-                              ),
-                            ],
-                          ),
-                        SizedBox(height: 18.0),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Record Date:',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black,
-                              ),
-                            ),
-                            SizedBox(height: 8.0),
-                            Text(
-                              '${widget.selectedDate.toLocal().toString().split(' ')[0]}',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.black,
-                              ),
-                            ),
-                          ],
                         ),
-                      ])),
+                        SizedBox(height: 8.0),
+                        Text(
+                          recordDateFormatted != null
+                              ? recordDateFormatted!
+                              : 'N/A',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.black,
+                          ),
+                        ),
+                        SizedBox(height: 18.0),
+                        Text(
+                          'Edited at:',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
+                        ),
+                        SizedBox(height: 8.0),
+                        Text(
+                          editedTimestamp != null
+                              ? formatTimestamp(editedTimestamp!)
+                              : 'N/A',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.black,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
               SizedBox(height: 20.0),
               buildDivider(),
               buildSection(

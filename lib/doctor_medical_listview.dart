@@ -31,15 +31,6 @@ class _MedicalCalendarPageState extends State<MedicalCalendarPage> {
               .get();
 
       if (querySnapshot.docs.isNotEmpty) {
-        // Sort the medical records by uploadDate
-        querySnapshot.docs.sort(
-          (a, b) {
-            Timestamp aTimestamp = a['uploadDate'] as Timestamp;
-            Timestamp bTimestamp = b['uploadDate'] as Timestamp;
-            return bTimestamp.compareTo(aTimestamp);
-          },
-        );
-
         // Convert documents to MedicalRecord objects
         medicalRecords = querySnapshot.docs.map((doc) {
           return MedicalRecord.fromMap(
@@ -48,9 +39,12 @@ class _MedicalCalendarPageState extends State<MedicalCalendarPage> {
           );
         }).toList();
 
+        // Sort the medical records by uploadDate in ascending order
+        medicalRecords.sort((a, b) => a.uploadDate.compareTo(b.uploadDate));
+
         setState(() {});
       } else {
-        print('No medical records found for ${widget.residentName}.');
+        print('No medical records found for ${widget.residentName}');
       }
     } catch (e, stackTrace) {
       print('Error fetching medical records: $e\n$stackTrace');
@@ -73,7 +67,7 @@ class _MedicalCalendarPageState extends State<MedicalCalendarPage> {
     });
   }
 
-  Future<void> _selectDate(BuildContext context) async {
+  void _selectDate(BuildContext context) async {
     DateTime? picked = await showDatePicker(
       context: context,
       initialDate: selectedDate,
@@ -82,12 +76,16 @@ class _MedicalCalendarPageState extends State<MedicalCalendarPage> {
     );
 
     if (picked != null && picked != selectedDate) {
-      print('Selected date: $picked'); // Add this line
+      print('Selected date: $picked');
       setState(() {
         selectedDate = picked;
       });
+
       // Fetch and display medical records for the selected date
       fetchMedicalRecordsForDate();
+    } else {
+      // Handle case where user canceled date selection
+      // You can choose to show a message or take other actions
     }
   }
 
@@ -121,6 +119,14 @@ class _MedicalCalendarPageState extends State<MedicalCalendarPage> {
       } else {
         // No medical records found for the selected date
         medicalRecords.clear();
+
+        // Show a SnackBar with the message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('No medical records found for the selected date'),
+            duration: Duration(seconds: 2),
+          ),
+        );
       }
     } catch (e, stackTrace) {
       print('Error fetching medical records: $e\n$stackTrace');

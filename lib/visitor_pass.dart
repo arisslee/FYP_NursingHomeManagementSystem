@@ -194,32 +194,36 @@ class _VisitorPassPageState extends State<VisitorPassPage> {
                       Timestamp timestamp = data['date'];
                       DateTime dateTime = timestamp.toDate();
 
-                      return Container(
-                        margin: EdgeInsets.all(8.0),
-                        padding: EdgeInsets.all(8.0),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12.0),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.5),
-                              spreadRadius: 2,
-                              blurRadius: 5,
-                              offset: Offset(0, 3),
+                      return GestureDetector(
+                          onTap: () {
+                            _showDisapprovalReasonDialog(context, data);
+                          },
+                          child: Container(
+                            margin: EdgeInsets.all(8.0),
+                            padding: EdgeInsets.all(8.0),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12.0),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.grey.withOpacity(0.5),
+                                  spreadRadius: 2,
+                                  blurRadius: 5,
+                                  offset: Offset(0, 3),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                        child: ListTile(
-                          title: Text('Date: ${_formatDate(dateTime)}'),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                  'Time: ${data['startTime']} - ${data['endTime']}'),
-                            ],
-                          ),
-                        ),
-                      );
+                            child: ListTile(
+                              title: Text('Date: ${_formatDate(dateTime)}'),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                      'Time: ${data['startTime']} - ${data['endTime']}'),
+                                ],
+                              ),
+                            ),
+                          ));
                     },
                   );
                 }
@@ -228,6 +232,27 @@ class _VisitorPassPageState extends State<VisitorPassPage> {
           ],
         ),
       ),
+    );
+  }
+
+  void _showDisapprovalReasonDialog(
+      BuildContext context, Map<String, dynamic> data) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Disapproval Reason'),
+          content: Text(data['reason'] ?? 'No reason provided'),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Close'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 

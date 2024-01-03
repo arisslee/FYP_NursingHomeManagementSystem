@@ -2,23 +2,29 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'staff_approve_pass.dart';
 import 'staff_visitor_pass.dart';
+import 'staff_show_all_approve_appointment.dart';
 import 'package:intl/intl.dart';
 
-class StaffAppointmentPage extends StatelessWidget {
+class StaffAppointmentPage extends StatefulWidget {
   final DateTime date;
   final String startTime;
   final String endTime;
-  final String userUID; // Add this line
-  final Map<String, dynamic> userInfo; // Add this line
+  final String userUID;
+  final Map<String, dynamic> userInfo;
 
   StaffAppointmentPage({
     required this.date,
     required this.startTime,
     required this.endTime,
-    required this.userUID, // Add this line
-    required this.userInfo, // Add this line
+    required this.userUID,
+    required this.userInfo,
   });
 
+  @override
+  _StaffAppointmentPageState createState() => _StaffAppointmentPageState();
+}
+
+class _StaffAppointmentPageState extends State<StaffAppointmentPage> {
   Future<Map<String, String>> getUserInfo(String userUID) async {
     try {
       final userQuery = await FirebaseFirestore.instance
@@ -59,28 +65,24 @@ class StaffAppointmentPage extends StatelessWidget {
         .snapshots();
   }
 
+  DateTime selectedDate = DateTime.now();
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 1,
       child: Scaffold(
-        // appBar: AppBar(
-        //   automaticallyImplyLeading: false,
-        //   toolbarHeight: kToolbarHeight + 25.0,
-        //   backgroundColor: Colors.blue,
-        //   elevation: 0,
-        //   bottom: PreferredSize(
-        //     preferredSize: Size.fromHeight(0),
-        //     child: TabBar(
-        //       tabs: [
-        //         Tab(
-        //           text: 'Upcoming',
-        //           icon: Icon(Icons.access_time),
-        //         ),
-        //       ],
-        //     ),
-        //   ),
-        // ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => StaffShowAllApproveAppointmentPage(),
+              ),
+            );
+          },
+          child: Icon(Icons.list), // Use the list icon
+        ),
         body: TabBarView(
           children: [
             buildAppointmentsList(
@@ -120,7 +122,7 @@ class StaffAppointmentPage extends StatelessWidget {
 
         if (appointments.isEmpty) {
           return Center(
-            child: Text('No appointments found.'),
+            child: Text('No appointments pending for approval'),
           );
         }
 
@@ -206,17 +208,25 @@ class StaffAppointmentPage extends StatelessWidget {
                     TextButton(
                       child: Text('Disapprove'),
                       onPressed: () {
-                        _handleAppointmentApproval(context, docId, userInfo,
-                            'disapprove', startTime, endTime, date,
-                            gender: userInfo['gender'] ?? 'Unknown Gender');
+                        Navigator.of(context)
+                            .pop(); // Close the confirmation dialog
+                        _showDisapprovalReasonDialog(
+                            context, docId, date, startTime, endTime, userInfo);
                       },
                     ),
                     TextButton(
                       child: Text('Approve'),
                       onPressed: () {
-                        _handleAppointmentApproval(context, docId, userInfo,
-                            'approve', startTime, endTime, date,
-                            gender: userInfo['gender'] ?? 'Unknown Gender');
+                        _handleAppointmentApproval(
+                          context,
+                          docId,
+                          userInfo,
+                          'approve',
+                          startTime,
+                          endTime,
+                          date,
+                          gender: userInfo['gender'] ?? 'Unknown Gender',
+                        );
                       },
                     ),
                   ],
@@ -229,6 +239,103 @@ class StaffAppointmentPage extends StatelessWidget {
     );
   }
 
+  void _showDisapprovalReasonDialog(
+    BuildContext context,
+    String docId,
+    Timestamp date,
+    String startTime,
+    String endTime,
+    Map<String, String> userInfo,
+  ) {
+    TextEditingController reasonController = TextEditingController();
+    bool showError = false;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16.0),
+              ),
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Disapproval Reason',
+                      style: TextStyle(
+                        fontSize: 20.0,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 16.0),
+                    TextField(
+                      controller: reasonController,
+                      decoration: InputDecoration(
+                        labelText: 'Please state the reason',
+                        errorText: showError ? 'Please enter a reason' : null,
+                        border: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: showError ? Colors.red : Colors.grey,
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 16.0),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          child: Text('Cancel'),
+                          onPressed: () {
+                            Navigator.of(context)
+                                .pop(); // Close the disapproval reason dialog
+                          },
+                        ),
+                        TextButton(
+                          child: Text('Submit'),
+                          onPressed: () {
+                            if (reasonController.text.isEmpty) {
+                              setState(() {
+                                showError = true;
+                              });
+                            } else {
+                              setState(() {
+                                showError = false;
+                              });
+                              _handleAppointmentApproval(
+                                context,
+                                docId,
+                                userInfo,
+                                'disapprove',
+                                startTime,
+                                endTime,
+                                date,
+                                gender: userInfo['gender'] ?? 'Unknown Gender',
+                                reason: reasonController.text,
+                              );
+                              Navigator.of(context)
+                                  .pop(); // Close the disapproval reason dialog
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // Update _handleAppointmentApproval method
   void _handleAppointmentApproval(
       BuildContext context,
       String docId,
@@ -236,8 +343,9 @@ class StaffAppointmentPage extends StatelessWidget {
       String approvalStatus,
       String startTime,
       String endTime,
-      Timestamp originalDate, // Add this parameter
-      {required String gender} // Add this line
+      Timestamp originalDate,
+      {required String gender,
+      String? reason} // Add this line
       ) async {
     try {
       // Fetch userUID from 'users' collection using the user's name
@@ -263,7 +371,8 @@ class StaffAppointmentPage extends StatelessWidget {
         'userUID': userUID,
         'userName': userInfo['name'],
         'userPhone': userInfo['phone'],
-        'gender': gender, // Add this line
+        'gender': gender,
+        'reason': reason, // Add this line
         // Add other fields as needed
       };
 
